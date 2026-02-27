@@ -30,7 +30,7 @@ import WebKit
                 if position > 0 {
                     webView.scrollView.setContentOffset(
                         CGPoint(x: 0.0, y: position),
-                        animated: false
+                        animated: true 
                     )
                 }
             }

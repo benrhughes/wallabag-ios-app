@@ -28,20 +28,24 @@ import WebKit
             func webViewToLastPosition(in webView: WKWebView) {
                 let position = self.webView.entry.screenPositionForWebView
                 if position > 0 {
-                    webView.scrollView.setContentOffset(
-                        CGPoint(x: 0.0, y: position),
-                        animated: true 
-                    )
+                    // Check if content is actually loaded by verifying contentSize
+                    if webView.scrollView.contentSize.height > webView.bounds.height {
+                        webView.scrollView.setContentOffset(
+                            CGPoint(x: 0.0, y: position),
+                            animated: true
+                        )
+                    } else {
+                        // Content not ready yet, try again after a minimal delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            self.webViewToLastPosition(in: webView)
+                        }
+                    }
                 }
             }
 
             func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
                 webView.fontSizePercent(appSetting.webFontSizePercent)
-                
-                // A tiny delay ensures the contentSize is calculated after font application
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.webViewToLastPosition(in: webView)
-                }
+                self.webViewToLastPosition(in: webView)
             }
 
             func webView(_: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -95,8 +99,7 @@ import WebKit
             webView.scrollView.backgroundColor = .clear
             webView.scrollView.contentInsetAdjustmentBehavior = .always
             
-            let titleHtml = "<h1>\(entry.title ?? "")</h1>"
-            webView.load(content: titleHtml + (entry.content ?? ""), justify: UserDefaults.standard.bool(forKey: "justifyArticle"))
+            webView.load(content: entry.titleHtml + (entry.content ?? ""), justify: UserDefaults.standard.bool(forKey: "justifyArticle"))
 
             return webView
         }
@@ -116,8 +119,7 @@ import WebKit
         func makeNSView(context: Context) -> WKWebView {
             let webView = WKWebView(frame: .zero)
             webView.navigationDelegate = context.coordinator
-            let titleHtml = "<h1>\(entry.title ?? "")</h1>"
-            webView.load(content: titleHtml + (entry.content ?? ""), justify: false)
+            webView.load(content: entry.titleHtml + (entry.content ?? ""), justify: false)
 
             return webView
         }
